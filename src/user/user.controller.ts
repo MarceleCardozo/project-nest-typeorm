@@ -9,11 +9,13 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserDTO } from './dto/user.dto';
+import { IsPublic } from 'src/auth/decorators/is-public-decorator';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @IsPublic()
   @Post()
   create(@Body() createUserDto: UserDTO) {
     return this.userService.create(createUserDto);
