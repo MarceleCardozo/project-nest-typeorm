@@ -1,34 +1,40 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
-import { JwtService } from '@nestjs/jwt'; // Import JwtService
+import { JwtService } from '@nestjs/jwt';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UserService,
-    private jwtService: JwtService, // Inject JwtService
+    private usersService: UserService,
+    private jwtService: JwtService,
   ) {}
 
-  async signIn(username: string, pass: string): Promise<any> {
-    const user = await this.userService.findOne(username);
+  async validateUser(username: string, pass: string): Promise<any> {
+    const user = await this.usersService.findOne(username);
 
-    if (!user) {
-      // Handle the case where the user is not found
-      throw new UnauthorizedException('Invalid credentials');
+    const isValidPassword = await bcrypt.compare(pass, user.password);
+
+    if (user && isValidPassword) {
+      const { password, ...result } = user;
+      return result;
     }
+    return null;
+  }
+
+  async signIn(username, pass) {
+    const user = await this.usersService.findOne(username);
 
     const isValidPassword = await bcrypt.compare(pass, user.password);
 
     if (!isValidPassword) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException();
     }
 
-    // Generate JWT token
-    const payload = { username: user.username, sub: user.id };
-    const accessToken = this.jwtService.sign(payload);
-
-    return { accessToken };
+    const payload = { sub: user.id, username: user.username };
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+    };
   }
 }
